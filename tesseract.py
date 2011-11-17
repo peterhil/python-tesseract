@@ -48,15 +48,11 @@ import Image
 import subprocess
 import sys
 import os
-import glob
-
-__all__ = ['image_to_string']
 
 _convertname = lambda x : "tess_{}_tmp.bmp".format(x)
 _outputname = lambda x : "tess_out_{}".format(x)
-_imageOpen = lambda x : Image().open(x)
-_makebmp = lambda x, y : _imageOpen(x).save(y)
-
+_imageopen = lambda x : Image.open(x)
+_makebmp = lambda x, y : _imageopen(x).save(y)
 _delete = lambda x : os.remove(x) if os.path.exists(x) else None
 
 def _readFile(name):
@@ -147,22 +143,25 @@ class TesseractBox(object):
         )
 
 
-def read_boxes(file_descriptor):
+def _readBoxFile(fileName):
     """
     Extract of set of TesseractBox from the lines of 'file_descriptor'
+        fileName - Location of box file
+        returns - [ TesseractBox ]
     """
-    boxes = []  # note that the order of the boxes may matter to the caller
-    for line in file_descriptor.readlines():
-        line = line.strip()
-        if line == "":
-            continue
-        elements = line.split(" ")
-        if len(elements) < 6:
-            continue
-        position = ((int(elements[1]), int(elements[2])),
-                    (int(elements[3]), int(elements[4])))
-        box = TesseractBox(unicode(elements[0]), position, int(elements[5]))
-        boxes.append(box)
+    boxes = []
+    with open(fileName) as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line == "":
+                continue
+            elements = line.split(" ")
+            if len(elements) < 6:
+                continue
+            position = ((int(elements[1]), int(elements[2])),
+                        (int(elements[3]), int(elements[4])))
+            box = TesseractBox(unicode(elements[0]), position, int(elements[5]))
+            boxes.append(box)
     return boxes
 
 
@@ -181,16 +180,21 @@ def _image2String(fileName, lang=None, boxes=False):
     and then the tesseract command is run on the image. Tesseract's result is
     read, and the temporary files are erased.
 
+    Exceptions:
+        TesseractError(status, errors)
+
     Returns:
+        if no tesseract output: None 
         if boxes == False (default): the text as read from the image
         if boxes == True: an array of TesseractBox
 
     '''
-
+    data = None
     tempName = _convertname(fileName)
     outputBase = _outputname(fileName)
     _makebmp(fileName, tempName)
-        
+    outputFile = outputBase+".txt"
+
     (status, errors) = _runTesseract(tempName,
                                      outputBase,
                                      lang=lang,
@@ -198,10 +202,14 @@ def _image2String(fileName, lang=None, boxes=False):
     if status:
         raise TesseractError(status, errors)
 
+    if os.path.exists(outputFile):
+        if not boxes:
+            data = _readFile(outputFile)
+        else:
+            data = _readBoxFile(outputFile)
+    _delete(outputFile)
     _delete(tempName)
-    for outputFile in glob.iglob(outputBase):
-        _delete(outputFile)
-
+    return data
 
 def main():
     """
@@ -210,7 +218,7 @@ def main():
     if len(sys.argv) == 2:
         filename = sys.argv[1]
         try:
-            _image2String(filename)
+            print _image2String(filename)
         except IOError:
             sys.stderr.write('ERROR: Could not open file "%s"\n'
                              % filename)
@@ -219,7 +227,7 @@ def main():
         lang = sys.argv[2]
         filename = sys.argv[3]
         try:
-            image = _image2String(filename,lang=lang)
+            print _image2String(filename,lang=lang)
         except IOError:
             sys.stderr.write('ERROR: Could not open file "%s"\n'
                              % filename)
