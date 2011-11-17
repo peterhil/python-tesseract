@@ -45,15 +45,26 @@ http://wiki.github.com/hoffstaetter/python-tesseract
 TESSERACT_CMD = 'tesseract'
 
 import Image
-import StringIO
 import subprocess
 import sys
 import os
+import glob
 
 __all__ = ['image_to_string']
 
+_convertname = lambda x : "tess_{}_tmp.bmp".format(x)
+_outputname = lambda x : "tess_out_{}".format(x)
+_imageOpen = lambda x : Image().open(x)
+_makebmp = lambda x, y : _imageOpen(x).save(y)
 
-def run_tesseract(input_filename, output_filename_base, lang=None,
+_delete = lambda x : os.remove(x) if os.path.exists(x) else None
+
+def _readFile(name):
+    with open(name) as f:
+        d = f.read()
+    return d
+
+def _runTesseract(input_filename, output_filename_base, lang=None,
                   boxes=False):
     '''
     runs the command:
@@ -81,15 +92,6 @@ def run_tesseract(input_filename, output_filename_base, lang=None,
     errors = proc.stderr.read()
     return (proc.wait(), errors)
 
-
-def cleanup(filename):
-    ''' tries to remove the given filename. Ignores non-existent files '''
-    try:
-        os.remove(filename)
-    except OSError:
-        pass
-
-
 def get_errors(error_string):
     '''
     returns all lines in the error_string that start with the string "error"
@@ -102,19 +104,6 @@ def get_errors(error_string):
         return '\n'.join(error_lines)
     else:
         return error_string.strip()
-
-
-def tempnam():
-    ''' returns a temporary file-name '''
-
-    # prevent os.tmpname from printing an error...
-    stderr = sys.stderr
-    try:
-        sys.stderr = StringIO.StringIO()
-        return os.tempnam(None, 'tess_')
-    finally:
-        sys.stderr = stderr
-
 
 class TesseractError(Exception):
     """
@@ -177,16 +166,16 @@ def read_boxes(file_descriptor):
     return boxes
 
 
-def write_box_file(file_descriptor, boxes):
+def _writeBoxFile(fileName, boxes):
     """
-    Write boxes in a box file. Output is in a the same format than tesseract's
-    one.
+    Write boxes in a box file. Output is in the same format as tesseract.
     """
-    for box in boxes:
-        file_descriptor.write(str(box) + "\n")
+    with open(fileName) as f:
+        for box in boxes:
+            f.write(str(box) + "\n")
 
 
-def image_to_string(image, lang=None, boxes=False):
+def _image2String(fileName, lang=None, boxes=False):
     '''
     Runs tesseract on the specified image. First, the image is written to disk,
     and then the tesseract command is run on the image. Tesseract's result is
@@ -198,31 +187,20 @@ def image_to_string(image, lang=None, boxes=False):
 
     '''
 
-    input_file_name = '%s.bmp' % tempnam()
-    output_file_name_base = tempnam()
-    if not boxes:
-        output_file_name = '%s.txt' % output_file_name_base
-    else:
-        output_file_name = '%s.box' % output_file_name_base
-    try:
-        image.save(input_file_name)
-        (status, errors) = run_tesseract(input_file_name,
-                                         output_file_name_base,
-                                         lang=lang,
-                                         boxes=boxes)
-        if status:
-            raise TesseractError(status, errors)
-        file_desc = open(output_file_name)
-        try:
-            if not boxes:
-                return file_desc.read().strip()
-            else:
-                return read_boxes(file_desc)
-        finally:
-            file_desc.close()
-    finally:
-        cleanup(input_file_name)
-        cleanup(output_file_name)
+    tempName = _convertname(fileName)
+    outputBase = _outputname(fileName)
+    _makebmp(fileName, tempName)
+        
+    (status, errors) = _runTesseract(tempName,
+                                     outputBase,
+                                     lang=lang,
+                                     boxes=boxes)
+    if status:
+        raise TesseractError(status, errors)
+
+    _delete(tempName)
+    for outputFile in glob.iglob(outputBase):
+        _delete(outputFile)
 
 
 def main():
@@ -232,22 +210,20 @@ def main():
     if len(sys.argv) == 2:
         filename = sys.argv[1]
         try:
-            image = Image.open(filename)
+            _image2String(filename)
         except IOError:
             sys.stderr.write('ERROR: Could not open file "%s"\n'
                              % filename)
             exit(1)
-        print image_to_string(image)
     elif len(sys.argv) == 4 and sys.argv[1] == '-l':
         lang = sys.argv[2]
         filename = sys.argv[3]
         try:
-            image = Image.open(filename)
+            image = _image2String(filename,lang=lang)
         except IOError:
             sys.stderr.write('ERROR: Could not open file "%s"\n'
                              % filename)
             exit(1)
-        print image_to_string(image, lang=lang)
     else:
         sys.stderr.write(
             'Usage: python tesseract.py [-l language] input_file\n')
