@@ -174,7 +174,7 @@ def _writeBoxFile(fileName, boxes):
             f.write(str(box) + "\n")
 
 
-def _image2String(fileName, lang=None, boxes=False):
+def image2String(fileName, lang=None, boxes=False):
     '''
     Runs tesseract on the specified image. First, the image is written to disk,
     and then the tesseract command is run on the image. Tesseract's result is
@@ -218,7 +218,7 @@ def main():
     if len(sys.argv) == 2:
         filename = sys.argv[1]
         try:
-            print _image2String(filename)
+            print image2String(filename)
         except IOError:
             sys.stderr.write('ERROR: Could not open file "%s"\n'
                              % filename)
@@ -227,7 +227,7 @@ def main():
         lang = sys.argv[2]
         filename = sys.argv[3]
         try:
-            print _image2String(filename,lang=lang)
+            print image2String(filename,lang=lang)
         except IOError:
             sys.stderr.write('ERROR: Could not open file "%s"\n'
                              % filename)

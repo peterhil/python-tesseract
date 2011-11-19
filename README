@@ -16,9 +16,9 @@ From the shell:
  $ ./tesseract.py test.png                  # prints recognized text in image
  $ ./tesseract.py -l fra test-european.jpg  # recognizes french text
 In python:
- > from tesseract import _image2String
- > print _image2String('test.png')
- > print _image2String('test-european.jpg', lang='fra')
+ > from tesseract import image2String
+ > print image2String('test.png')
+ > print image2String('test-european.jpg', lang='fra')
 
 
 INSTALLATION:
