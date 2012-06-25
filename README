@@ -1,3 +1,14 @@
+This appeared to be an abandoned project, so I am grabbing all of the source and compliling it and reworking it for personal use. If anyone would like to contribute, or would like to use this, please do.
+
+Current Status:
+
+Code from forks on GitHub and Google Code have been combined. Thinking about adding the Python "Tesseract API" library also, but it appears to be useless at the current time. 
+
+First order of business is to clean up and make only the code needed. I currently am going through the source to rebuild the library, and I think I will become the new maintainer for the project. A majority of the work is done thanks to my previous coders. I still don't know who the original code started out with, as I have seen the same code replicated many times with different people in charge.
+
+It is also needed to come up with a standard. Through all of the different codes I looked at, they all were near identical except some of the calls to the functions.
+
+
 Python-tesseract is an optical character recognition (OCR) tool for python.
 That is, it will recognize and "read" the text embedded in images.
 
@@ -33,6 +44,6 @@ INSTALLATION:
 
 COPYRIGHT:
 Python-tesseract is released under the GPL v3.
-Copyright (c) Samuel Hoffstaetter, 2009
-http://wiki.github.com/hoffstaetter/python-tesseract
+Copyright (c) Samuel Hoffstaetter, 2009 #who was this man? 
+http://wiki.github.com/hoffstaetter/python-tesseract #no longer functional? 
 
